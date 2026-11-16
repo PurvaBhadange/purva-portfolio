@@ -34,20 +34,20 @@
 .hero-portrait-wrap {
   position: relative;
   z-index: 10;
-  width: min(82vw, 48vh, 460px);
+  width: min(88vw, 55vh, 490px);
   aspect-ratio: 1 / 1;
   touch-action: pan-y;
 }
 
 @media (min-width: 768px) {
   .hero-portrait-wrap {
-    width: min(56vw, 50vh, 480px);
+    width: min(62vw, 58vh, 530px);
   }
 }
 
 @media (min-width: 1024px) {
   .hero-portrait-wrap {
-    width: min(44vw, 52vh, 520px);
+    width: min(48vw, 62vh, 580px);
   }
 }
 

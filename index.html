@@ -106,8 +106,9 @@
                 float noseTip = exp(-dot((a - vec2(0.5, 0.445)) * vec2(3.2, 2.6), (a - vec2(0.5, 0.445)) * vec2(3.2, 2.6)) * 8.0) * 0.35;
                 float cheekL = exp(-dot((a - vec2(0.415, 0.455)) * 2.5, (a - vec2(0.415, 0.455)) * 2.5) * 7.0) * 0.16;
                 float cheekR = exp(-dot((a - vec2(0.585, 0.455)) * 2.5, (a - vec2(0.585, 0.455)) * 2.5) * 7.0) * 0.16;
-                float neckFade = smoothstep(0.76, 0.50, a.y);
-                float depth = clamp((0.35 + 0.65 * headMask + noseTip + cheekL + cheekR) * neckFade, 0.08, 1.35);
+                // Valid smoothstep: strictly increases from edge0 (0.50) to edge1 (0.78), so neckFade smoothly decreases from 1 to 0
+                float neckFade = 1.0 - smoothstep(0.50, 0.78, a.y);
+                float depth = clamp((0.35 + 0.65 * headMask + noseTip + cheekL + cheekR) * neckFade, 0.12, 1.15);
                 vDepth = depth;
 
                 // Cheek puff bulge outward when puffAmt > 0
@@ -115,11 +116,18 @@
                 vec2 cR = a - vec2(0.595, 0.468);
                 vec2 puffDisp = (normalize(cL + vec2(1e-4)) * exp(-dot(cL, cL) * 240.0) + normalize(cR + vec2(1e-4)) * exp(-dot(cR, cR) * 240.0)) * puffAmt * 0.022;
 
-                // Subtle 3D foreshortening around head pivot (0.5, 0.48)
+                // Safe clamped lean so vertices cannot rip or tear apart
+                vec2 safeLean = clamp(lean, vec2(-0.016), vec2(0.016));
+
+                // Subtle, stable 3D foreshortening around head pivot (0.5, 0.48)
                 vec2 pivot = a - vec2(0.5, 0.48);
-                vec2 turnScale = vec2(1.0 - abs(lean.x) * 0.85, 1.0 - abs(lean.y) * 0.65);
+                vec2 turnScale = vec2(
+                  clamp(1.0 - abs(safeLean.x) * 0.45, 0.96, 1.0),
+                  clamp(1.0 - abs(safeLean.y) * 0.35, 0.96, 1.0)
+                );
                 vec2 shoulderLift = vec2(0.0, -breath * smoothstep(0.68, 0.92, a.y) * (1.0 - smoothstep(0.18, 0.48, abs(a.x - 0.5))));
-                vec2 p = vec2(0.5, 0.48) + pivot * turnScale + d + puffDisp + lean * depth + shoulderLift;
+                vec2 safeD = clamp(d, vec2(-0.030), vec2(0.030));
+                vec2 p = vec2(0.5, 0.48) + pivot * turnScale + safeD + puffDisp + safeLean * depth + shoulderLift;
                 gl_Position = vec4(vec2(p.x - .5, .5 - p.y) * 2. / overS, 0., 1.);
               }`;
             const FS = `precision highp float; varying vec2 vUv; varying float vS; varying float vDepth;
@@ -250,7 +258,12 @@
                 vx[k] += ((u0 + brush.px * w - ux[k]) * K - vx[k] * D) * dt;
                 vy[k] += ((v0 + brush.py * w - uy[k]) * K - vy[k] * D) * dt;
               }
-              for (let k = 0; k < count; k++) { ux[k] += vx[k] * dt; uy[k] += vy[k] * dt; }
+              for (let k = 0; k < count; k++) {
+                const nx = ux[k] + vx[k] * dt;
+                const ny = uy[k] + vy[k] * dt;
+                ux[k] = Math.max(-0.035, Math.min(0.035, nx));
+                uy[k] = Math.max(-0.035, Math.min(0.035, ny));
+              }
             }
             function poke(u, v, dx, dy, radius = .09) {
               for (let k = 0; k < count; k++) {
@@ -373,8 +386,8 @@
 
               for (let y = 0; y < SIZE; y++) {
                 const ny = y / SIZE;
-                // Smooth editorial vignette fade across lower torso & bottom corners so portrait integrates into #0C0C0C
-                const bottomFade = 1 - smoothstep(0.75, 0.985, ny);
+                // Extended smooth vignette fade across lower torso so portrait looks taller and more statuesque
+                const bottomFade = 1 - smoothstep(0.80, 0.995, ny);
                 for (let x = 0; x < SIZE; x++) {
                   const nx = x / SIZE;
                   const p = y * SIZE + x;
@@ -382,7 +395,7 @@
                   if (bg[p]) {
                     d[o + 3] = 0;
                   } else {
-                    const sideFade = 1 - smoothstep(0.41, 0.495, Math.abs(nx - 0.5)) * smoothstep(0.68, 0.92, ny);
+                    const sideFade = 1 - smoothstep(0.44, 0.50, Math.abs(nx - 0.5)) * smoothstep(0.72, 0.94, ny);
                     const torsoFade = bottomFade * sideFade;
                     const ed = edgeDist[p];
                     if (isLightBg) {
@@ -434,12 +447,12 @@
                 const gainB = Math.max(0.88, Math.min(1.12, 0.5 + 0.5 * (anchor.tone[2] / Math.max(1, cur.tone[2]))));
                 for (let y = 0; y < SIZE; y++) {
                   const ny = y / SIZE;
-                  const bottomFade = 1 - smoothstep(0.75, 0.985, ny);
+                  const bottomFade = 1 - smoothstep(0.80, 0.995, ny);
                   for (let x = 0; x < SIZE; x++) {
                     const nx = x / SIZE;
                     const o = (y * SIZE + x) * 4;
                     if (ad2[o + 3] > 0) {
-                      const sideFade = 1 - smoothstep(0.41, 0.495, Math.abs(nx - 0.5)) * smoothstep(0.68, 0.92, ny);
+                      const sideFade = 1 - smoothstep(0.44, 0.50, Math.abs(nx - 0.5)) * smoothstep(0.72, 0.94, ny);
                       ad2[o] = Math.min(255, Math.round(ad2[o] * gainR));
                       ad2[o + 1] = Math.min(255, Math.round(ad2[o + 1] * gainG));
                       ad2[o + 2] = Math.min(255, Math.round(ad2[o + 2] * gainB));
@@ -609,14 +622,45 @@
               nextIdle = 22000 + Math.random() * 14000;
             }
 
+            let cursorInfluence = 0;
+
             addEventListener('pointermove', e => {
               const now = performance.now();
               const dx = e.clientX - lastX, dy = e.clientY - lastY; lastX = e.clientX; lastY = e.clientY;
-              mx = e.clientX; my = e.clientY; [pu, pv] = toUv(mx, my);
-              speed += Math.hypot(dx, dy) * .004;
-              wake(now);
+              mx = e.clientX; my = e.clientY;
+
+              // Fixed interaction radius check: only within this radius does the portrait track or react!
+              const rect = canvas.getBoundingClientRect();
+              const centerX = rect.left + rect.width * 0.5;
+              const centerY = rect.top + rect.height * 0.44; // centered on her face
+              const distFromCenter = Math.hypot(mx - centerX, my - centerY);
+              // Fixed radius: roughly 1x portrait width/height
+              const maxRadius = Math.max(rect.width * 0.78, 280);
+
+              if (distFromCenter < maxRadius) {
+                const normDist = distFromCenter / maxRadius;
+                // Smooth cosine falloff: 1.0 at center, smoothly decaying to 0.0 at edge of radius
+                cursorInfluence = 0.5 * (1.0 + Math.cos(normDist * Math.PI));
+              } else {
+                cursorInfluence = 0;
+              }
+
+              const [rawPu, rawPv] = toUv(mx, my);
+              // Strict clamping: never allow UVs to extrapolate into wild coordinates
+              const clampedPu = Math.max(0.22, Math.min(0.78, rawPu));
+              const clampedPv = Math.max(0.20, Math.min(0.80, rawPv));
+
+              // If outside radius, blend smoothly back to neutral center (0.50, 0.44)
+              pu = 0.50 + (clampedPu - 0.50) * cursorInfluence;
+              pv = 0.44 + (clampedPv - 0.44) * cursorInfluence;
+
+              if (cursorInfluence > 0.01) {
+                speed += Math.hypot(dx, dy) * .004 * cursorInfluence;
+                wake(now);
+              }
+
               if (act && !pressed) endAct();
-              onHead = solid(pu, pv);
+              onHead = cursorInfluence > 0.08 && solid(rawPu, rawPv);
               if (onHead && !wasOnHead && !pressed) {
                 headHoverCount += 1;
                 if (headHoverCount > 2) {
@@ -626,22 +670,22 @@
                 window.dispatchEvent(new CustomEvent('purva:porthover', { detail: { count: headHoverCount } }));
               }
               wasOnHead = onHead;
-              const z = onHead ? zoneAt(pu, pv) : null;
+              const z = onHead ? zoneAt(rawPu, rawPv) : null;
               if (z !== zone) { zone = z; zoneSince = now; }
               wrap.style.cursor = pressed ? 'grabbing' : onHead ? 'grab' : '';
-              if (onHead && !pressed) poke(pu, pv, dx * .00032, dy * .00032, .07);
+              if (onHead && !pressed) poke(pu, pv, dx * .00022 * cursorInfluence, dy * .00022 * cursorInfluence, .07);
               if (pressed && brush) {
-                let px = pu - brush.u, py = pv - brush.v; const L = Math.hypot(px, py), lim = .22;
+                let px = pu - brush.u, py = pv - brush.v; const L = Math.hypot(px, py), lim = .11;
                 if (L > 0) { const k = lim * (1 - Math.exp(-L / lim)) / L; px *= k; py *= k; }
                 brush.px = px; brush.py = py;
               }
-              // Smooth 3D magnetic tilt on #magnetInner when hovering portrait container
+              // Smooth 3D magnetic tilt on #magnetInner when hovering portrait container within radius
               if (inner && !reduced) {
-                if (onHead && !pressed) {
-                  const tiltY = Math.max(-7, Math.min(7, (pu - 0.5) * 22));
-                  const tiltX = Math.max(-6, Math.min(6, (0.45 - pv) * 18));
-                  const shiftX = Math.max(-8, Math.min(8, (pu - 0.5) * 18));
-                  const shiftY = Math.max(-8, Math.min(8, (pv - 0.45) * 18));
+                if (cursorInfluence > 0.05 && onHead && !pressed) {
+                  const tiltY = Math.max(-5, Math.min(5, (pu - 0.5) * 16 * cursorInfluence));
+                  const tiltX = Math.max(-4, Math.min(4, (0.45 - pv) * 14 * cursorInfluence));
+                  const shiftX = Math.max(-6, Math.min(6, (pu - 0.5) * 14 * cursorInfluence));
+                  const shiftY = Math.max(-6, Math.min(6, (pv - 0.45) * 14 * cursorInfluence));
                   inner.style.transform = `perspective(920px) translate3d(${shiftX.toFixed(2)}px, ${shiftY.toFixed(2)}px, 0) rotateX(${tiltX.toFixed(2)}deg) rotateY(${tiltY.toFixed(2)}deg)`;
                 } else if (!pressed) {
                   inner.style.transform = '';
@@ -766,8 +810,11 @@
 
               const dizzyWobbleX = dizzyMode ? Math.sin(now * 0.014) * 0.024 : 0;
               const dizzyWobbleY = dizzyMode ? Math.cos(now * 0.011) * 0.014 : 0;
-              const tx = (pressed || handHeld ? (brush ? brush.px * .15 : 0) : awake ? (pu - .5) * .026 : 0) + wantLean[0] + dizzyWobbleX + Math.sin(now * .0009) * .0014;
-              const ty = (pressed || handHeld ? (brush ? brush.py * .15 : 0) : awake ? (pv - .43) * .016 : 0) + wantLean[1] + dizzyWobbleY + Math.sin(now * .0013) * .0020;
+              const maxLeanTarget = 0.015;
+              const rawTx = (pressed || handHeld ? (brush ? brush.px * .11 : 0) : awake ? (pu - .5) * .018 : 0) + wantLean[0] + dizzyWobbleX + Math.sin(now * .0009) * .0010;
+              const rawTy = (pressed || handHeld ? (brush ? brush.py * .11 : 0) : awake ? (pv - .44) * .013 : 0) + wantLean[1] + dizzyWobbleY + Math.sin(now * .0013) * .0015;
+              const tx = Math.max(-maxLeanTarget, Math.min(maxLeanTarget, rawTx));
+              const ty = Math.max(-maxLeanTarget, Math.min(maxLeanTarget, rawTy));
               lvX += ((tx - leanX) * 70 - lvX * 8) * dt; lvY += ((ty - leanY) * 70 - lvY * 8) * dt;
               leanX += lvX * dt; leanY += lvY * dt;
 

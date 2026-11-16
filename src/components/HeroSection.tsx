@@ -166,14 +166,14 @@ export const HeroSection: React.FC = () => {
       </div>
 
       {/* Top area: Interactive TypeMotion Hero Heading (clears fixed top Navbar cleanly) */}
-      <div className="relative z-20 w-full shrink-0 pt-[68px] sm:pt-[76px] md:pt-[84px]">
+      <div className="relative z-20 w-full shrink-0 pt-[62px] sm:pt-[70px] md:pt-[76px]">
         <div className="px-4 md:px-8">
           <TypeMotion text="HI, I'M PURVA" />
         </div>
       </div>
 
-      {/* Dedicated Middle Stage: Centered Living Portrait (never overlaps heading or bottom bar) */}
-      <div className="relative z-10 flex flex-1 min-h-0 w-full items-center justify-center px-4 py-2">
+      {/* Dedicated Middle Stage: Centered Living Portrait (lifted higher to feel tall, prominent and commanding) */}
+      <div className="relative z-10 flex flex-1 min-h-0 w-full flex-col items-center justify-center px-4 pt-1 pb-3 sm:pb-6 -mt-4 sm:-mt-7 md:-mt-10">
         <div className="hero-portrait-wrap" id="magnetWrap">
           <FadeIn delay={0.6} y={30} className="w-full h-full">
             <div className="hero-portrait-inner" id="magnetInner">
