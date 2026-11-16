@@ -1,6 +1,6 @@
 {
-  "name": "Mina -- 3D Creator",
-  "description": "Portfolio landing page for Mina, a 3D creator specializing in 3D modeling, rendering, motion design, branding, and web design, featuring an interactive WebGL living portrait.",
+  "name": "Purva Bhadange -- Portfolio",
+  "description": "Portfolio landing page for Purva Manishrao Bhadange, an AI/ML and Full-Stack Engineer featuring an interactive WebGL living portrait, project showcases, and contact system.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
