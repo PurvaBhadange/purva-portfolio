@@ -134,27 +134,58 @@
               uniform sampler2D faceA, faceB;
               uniform float fade;
               uniform vec2 lean;
-              uniform float kissAmt;
+              uniform vec2 gaze;
               uniform float puffAmt;
               uniform float blushAmt;
+              uniform vec3 hairTint;
+              uniform float hairAmt;
               void main(){
                 if(vUv.x<0.||vUv.y<0.||vUv.x>1.||vUv.y>1.){ gl_FragColor = vec4(0.); return; }
 
-                // Kiss & puff lip-pucker UV warp centered right on Purva's lips (0.50, 0.520)
-                float pout = max(kissAmt, puffAmt * 0.65);
                 vec2 uv = vUv;
-                vec2 mRel = uv - vec2(0.50, 0.520);
-                vec2 mNorm = vec2(mRel.x / 0.078, mRel.y / 0.044);
-                float mW = exp(-dot(mNorm, mNorm) * 2.1) * pout;
-                uv.x += mRel.x * 0.44 * mW;
-                uv.y -= mRel.y * 0.14 * mW - 0.004 * kissAmt * mW;
+
+                // 1. Directional Eye Rolling & Pupil Gaze Tracking inside eye boundaries
+                if(dot(gaze, gaze) > 0.0001){
+                  vec2 eL = (uv - vec2(0.415, 0.365)) / vec2(0.042, 0.024);
+                  vec2 eR = (uv - vec2(0.585, 0.365)) / vec2(0.042, 0.024);
+                  float maskL = exp(-dot(eL, eL) * 2.8);
+                  float maskR = exp(-dot(eR, eR) * 2.8);
+                  float eyeMask = max(maskL, maskR);
+                  // Deflect iris/pupil in direction of gaze
+                  vec2 eyeOffset = gaze * vec2(0.011, 0.008) * eyeMask;
+                  uv -= eyeOffset;
+                }
+
+                // 2. Cheek puff lip-pucker UV warp centered on lips
+                if(puffAmt > 0.001){
+                  float pout = puffAmt * 0.65;
+                  vec2 mRel = uv - vec2(0.50, 0.520);
+                  vec2 mNorm = vec2(mRel.x / 0.078, mRel.y / 0.044);
+                  float mW = exp(-dot(mNorm, mNorm) * 2.1) * pout;
+                  uv.x += mRel.x * 0.44 * mW;
+                  uv.y -= mRel.y * 0.14 * mW;
+                }
 
                 vec4 c = mix(texture2D(faceA, uv), texture2D(faceB, uv), fade);
                 if(c.a < .004){ gl_FragColor = vec4(0.); return; }
 
                 vec3 col = c.rgb / max(c.a, 0.001);
 
-                // Soft rosy cheek blush during kiss / flirt / puff
+                // 3. Dynamic Hair Color Tinting & Highlighting
+                if(hairAmt > 0.001){
+                  vec2 faceRel = (vUv - vec2(0.50, 0.435)) / vec2(0.165, 0.215);
+                  float insideFace = exp(-dot(faceRel, faceRel) * 2.2);
+                  float hairYFade = 1.0 - smoothstep(0.58, 0.76, vUv.y);
+                  float hairRegion = (1.0 - insideFace) * hairYFade;
+                  float pixLum = dot(col, vec3(0.299, 0.587, 0.114));
+                  float hairLumMask = 1.0 - smoothstep(0.36, 0.64, pixLum);
+                  float hairMask = clamp(hairRegion * hairLumMask * 1.6, 0.0, 1.0);
+                  // Natural multi-tonal hair highlights preserving original gloss and shadows
+                  vec3 tinted = hairTint * (pixLum * 1.85 + 0.14);
+                  col = mix(col, tinted, hairMask * hairAmt);
+                }
+
+                // 4. Soft rosy cheek blush during flirt / puff
                 if(blushAmt > 0.001){
                   vec2 bL = (uv - vec2(0.392, 0.456)) / vec2(0.056, 0.036);
                   vec2 bR = (uv - vec2(0.608, 0.456)) / vec2(0.056, 0.036);
@@ -162,14 +193,7 @@
                   col = mix(col, col * vec3(1.10, 0.83, 0.85) + vec3(0.11, 0.02, 0.04), bMask * blushAmt * 0.46);
                 }
 
-                // Soft rosy kiss lip sheen during kiss expression
-                if(kissAmt > 0.001){
-                  vec2 lRel = (uv - vec2(0.50, 0.522)) / vec2(0.036, 0.022);
-                  float lMask = exp(-dot(lRel, lRel) * 2.2);
-                  col = mix(col, vec3(0.84, 0.35, 0.44), lMask * kissAmt * 0.30);
-                }
-
-                // Subtle directional sheen matched to head turn without distorting natural skin tone
+                // 5. Subtle directional sheen matched to head turn without distorting natural skin tone
                 float turnShade = 1.0 + dot(vUv - vec2(0.5, 0.41), lean) * 1.4 * vDepth;
                 float shade = clamp(vS * turnShade, 0.90, 1.10);
                 gl_FragColor = vec4(clamp(col * shade, 0.0, 1.0) * c.a, c.a);
@@ -179,7 +203,7 @@
             gl.attachShader(pr, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, FS));
             gl.linkProgram(pr); gl.useProgram(pr);
             const U = {over_: gl.getUniformLocation(pr, 'overS')};
-            for (const n of ['lean', 'breath', 'puffAmt', 'kissAmt', 'blushAmt', 'faceA', 'faceB', 'fade']) U[n] = gl.getUniformLocation(pr, n);
+            for (const n of ['lean', 'gaze', 'breath', 'puffAmt', 'blushAmt', 'hairTint', 'hairAmt', 'faceA', 'faceB', 'fade']) U[n] = gl.getUniformLocation(pr, n);
             gl.uniform1f(U.over_, OVER);
             gl.uniform1i(U.faceA, 0); gl.uniform1i(U.faceB, 1);
 
@@ -484,23 +508,59 @@
 
             // ---- calibrated facial coordinates & expressions for Purva ----
             const SPOT = {nose: [.50, .445], brow: [.50, .305], cheekR: [.60, .455], cheekL: [.40, .455], mouth: [.50, .525]};
+            const HAIR_PALETTE = [
+              { name: 'natural', tint: [0.0, 0.0, 0.0], amt: 0.0 },
+              { name: 'pink',    tint: [0.96, 0.36, 0.62], amt: 0.82 },
+              { name: 'blue',    tint: [0.26, 0.58, 0.94], amt: 0.82 },
+              { name: 'blonde',  tint: [0.94, 0.78, 0.44], amt: 0.75 },
+              { name: 'violet',  tint: [0.72, 0.38, 0.90], amt: 0.80 },
+            ];
+            let hairIndex = 0;
+            let currentHairTint = [0, 0, 0];
+            let currentHairAmt = 0;
+            let targetHairTint = [0, 0, 0];
+            let targetHairAmt = 0;
+
+            function cycleHair(specificIndex) {
+              if (typeof specificIndex === 'number') {
+                hairIndex = specificIndex % HAIR_PALETTE.length;
+              } else {
+                hairIndex = (hairIndex + 1) % HAIR_PALETTE.length;
+              }
+              const chosen = HAIR_PALETTE[hairIndex];
+              targetHairTint = chosen.tint;
+              targetHairAmt = chosen.amt;
+            }
+
+            let gazeX = 0, gazeY = 0;
+            let actGaze = null;
+            let rollAngle = null;
+            let rollStart = 0;
+            function startEyeRoll(now) {
+              rollStart = now;
+              rollAngle = 0;
+            }
+
             const ACTS = {
+              roll: [['smile', 60, 1300, {roll: true}], ['wink', 85, 540], ['smile', 110, 700]],
+              shifty: [['smile', 70, 520, {gaze: [-0.95, 0]}], ['smile', 70, 600, {gaze: [0.95, 0]}], ['smile', 70, 420, {gaze: [-0.95, 0]}], ['smile', 70, 260, {gaze: [0, 0]}]],
+              hair: [['smile', 70, 1000, {hairI: 1}], ['smile', 70, 1000, {hairI: 2}], ['smile', 70, 1000, {hairI: 3}], ['smile', 70, 1000, {hairI: 4}], ['smile', 70, 800, {hairI: 0}]],
               sneeze: [['closed', 85, 240], ['shock', 55, 340, {jolt: [.50, .445, 0, 1.35, .28], lean: [0, .026]}], ['smile', 120, 720]],
               flirt: [['wink', 95, 560, {blush: 0.75}], ['wink', 95, 1300, {blush: 1, hearts: true, lean: [0.004, 0.014]}], ['smile', 120, 820]],
-              kiss: [['wink', 90, 1850, {kiss: 1, blush: 1, jolt: [.50, .52, 0, -0.18, .12], lean: [0.004, 0.016]}], ['smile', 130, 760]],
               puff: [['wink', 85, 1450, {puff: 1, blush: 0.85, jolt: [.50, .46, 0, -0.15, .14], lean: [0, -0.008]}], ['smile', 130, 680]],
               wind: [['shock', 90, 420, {wind: 1, lean: [-0.018, 0.004]}], ['wink', 110, 1300, {wind: 0.9, lean: [0.015, 0.003]}], ['smile', 130, 700]],
               dizzy: [['shock', 90, 1650, {dizzy: true, lean: [-0.014, -0.008]}], ['closed', 110, 450], ['smile', 130, 700]],
               yawn: [['shock', 140, 1250, {zzz: true, lean: [0, -0.012]}], ['closed', 140, 1100, {zzz: true}], ['smile', 140, 650]],
               cheeky: [['wink', 90, 520, {blush: 0.65}], ['smile', 110, 680]],
               wow: [['shock', 100, 620], ['smile', 120, 920]],
+              doze: [['closed', 280, 850, {zzz: true, lean: [0.01, 0.01]}], ['shock', 50, 620, {jolt: [.5, .45, 0, -0.85, .25]}], ['smile', 120, 700]],
               fly: 'fly',
               tug: 'tug',
             };
-            const ROTATION = ['fly', 'kiss', 'flirt', 'tug', 'wind', 'sneeze', 'puff', 'yawn', 'wow', 'cheeky'];
+            const ROTATION = ['roll', 'shifty', 'hair', 'fly', 'flirt', 'tug', 'wind', 'sneeze', 'puff', 'yawn', 'wow', 'cheeky', 'doze'];
             const ZONES = {
               hover: {eyeL: 'wink', eyeR: 'wink', nose: 'smile', mouth: 'smile'},
-              tap: {brow: 'shock', eyeL: 'wink', eyeR: 'wink', nose: 'act:sneeze', mouth: 'act:kiss', cheek: 'act:puff', chin: 'smile', hair: 'wink'}
+              tap: {brow: 'shock', eyeL: 'wink', eyeR: 'wink', nose: 'act:sneeze', mouth: 'smile', cheek: 'act:puff', chin: 'smile', hair: 'hair'}
             };
             // Calibrated to Purva's true head & facial feature proportions inside the 1:1 frame
             const zoneAt = (u, v) => {
@@ -526,7 +586,6 @@
             const pullNow = [0, 0];
 
             // Procedural expression targets & smoothed shader values
-            let kissNow = 0, kissTarget = 0;
             let puffNow = 0, puffTarget = 0;
             let blushNow = 0, blushTarget = 0;
             let windTarget = 0;
@@ -551,7 +610,8 @@
             }
 
             function resetActFx() {
-              kissTarget = 0; puffTarget = 0; blushTarget = 0; windTarget = 0; dizzyMode = false;
+              puffTarget = 0; blushTarget = 0; windTarget = 0; dizzyMode = false;
+              actGaze = null; rollAngle = null;
               if (heartsEl) heartsEl.classList.remove('active');
               if (starsEl) starsEl.classList.remove('active');
               if (zzzEl) zzzEl.classList.remove('active');
@@ -578,7 +638,9 @@
               if (x) {
                 if (x.jolt) poke(...x.jolt);
                 wantLean = x.lean || [0, 0];
-                if (x.kiss) kissTarget = x.kiss;
+                if (x.roll) startEyeRoll(now);
+                if (typeof x.hairI === 'number') cycleHair(x.hairI);
+                if (x.gaze) actGaze = x.gaze;
                 if (x.puff) puffTarget = x.puff;
                 if (x.blush) blushTarget = x.blush;
                 if (x.wind) windTarget = x.wind;
@@ -587,7 +649,10 @@
                 if (starsEl && x.dizzy) starsEl.classList.add('active');
                 if (zzzEl && x.zzz) zzzEl.classList.add('active');
                 if (x.call) x.call(now);
-              } else wantLean = [0, 0];
+              } else {
+                wantLean = [0, 0];
+                actGaze = null;
+              }
             }
             let wantEyes = null, handHeld = false, handFrom = [1.4, .9], handTo = [1.4, .9], flyFrom = [1.4, 0], flyTo = [1.4, 0], moveT = 0, moveMs = 1;
             const place = (el, u, v) => { el.style.left = ((u - .5) * 100 + 50) + '%'; el.style.top = ((v - .5) * 100 + 50) + '%'; };
@@ -707,6 +772,11 @@
               pressed = false; brush = null; wrap.style.cursor = onHead ? 'grab' : '';
               pulls = pulls.filter(t => now - t < 14000);
               if (L < .03 && held < 380) {
+                if (z === 'hair') {
+                  cycleHair();
+                  poke(downU, downV, 0, .28, .07);
+                  return;
+                }
                 const r = ZONES.tap[z] || 'smile';
                 if (r.startsWith('act:')) {
                   startAct(r.slice(4), now);
@@ -731,10 +801,26 @@
               if (inner) inner.style.transform = '';
             });
             document.querySelectorAll('.contact-btn').forEach(b => {
-              b.addEventListener('pointerenter', () => { moodFace = 'smile'; moodUntil = performance.now() + 1e7; });
-              b.addEventListener('pointerleave', () => { moodFace = 'wink'; moodUntil = performance.now() + 700; });
+              b.addEventListener('pointerenter', () => {
+                moodFace = 'smile';
+                if (heartsEl) heartsEl.classList.add('active');
+                moodUntil = performance.now() + 1e7;
+              });
+              b.addEventListener('pointerleave', () => {
+                if (heartsEl) heartsEl.classList.remove('active');
+                moodFace = 'wink';
+                moodUntil = performance.now() + 700;
+              });
             });
-            addEventListener('scroll', () => { wake(performance.now()); }, {passive: true});
+            let lastScroll = scrollY, scrollUntil = 0;
+            addEventListener('scroll', () => {
+              const n = performance.now();
+              if (Math.abs(scrollY - lastScroll) > 2) {
+                scrollUntil = n + 650;
+                lastScroll = scrollY;
+              }
+              wake(n);
+            }, {passive: true});
 
             let flyPos = [1.4, 0], visible = true;
             new IntersectionObserver(es => { visible = es[0].isIntersecting; }, {threshold: 0}).observe(canvas);
@@ -784,11 +870,49 @@
               const hoverBlush = (!act && !pressed && (zone === 'mouth' || zone === 'cheek')) ? 0.35 : 0;
               const activeBlushTarget = Math.max(blushTarget, hoverBlush);
 
-              // Smooth shader uniforms for kiss pucker, puffed cheeks, blush & wind
-              kissNow += (kissTarget - kissNow) * f(12);
+              // Smooth shader uniforms for puffed cheeks, blush & wind
               puffNow += (puffTarget - puffNow) * f(11);
               blushNow += (activeBlushTarget - blushNow) * f(8);
               windStrength += (windTarget - windStrength) * f(7);
+
+              // Smooth interpolation of hair color tint
+              for (let c = 0; c < 3; c++) {
+                currentHairTint[c] += (targetHairTint[c] - currentHairTint[c]) * f(10);
+              }
+              currentHairAmt += (targetHairAmt - currentHairAmt) * f(10);
+
+              // Smooth calculation of eye gaze (cursor tracking and eye rolling)
+              let targetGazeX = 0, targetGazeY = 0;
+              if (rollAngle !== null) {
+                const rollElapsed = now - rollStart;
+                const rollDuration = 1250;
+                if (rollElapsed < rollDuration) {
+                  rollAngle = (rollElapsed / rollDuration) * Math.PI * 2;
+                  targetGazeX = Math.cos(rollAngle);
+                  targetGazeY = -Math.sin(rollAngle);
+                } else {
+                  rollAngle = null;
+                }
+              } else if (actGaze) {
+                targetGazeX = actGaze[0];
+                targetGazeY = actGaze[1];
+              } else if (now < scrollUntil) {
+                targetGazeX = 0;
+                targetGazeY = 0.85; // looking down while scrolling
+              } else if (awake && cursorInfluence > 0.02) {
+                // Real-time eye pupil gaze tracking towards cursor
+                const gx = (pu - 0.50) / 0.22;
+                const gy = (pv - 0.365) / 0.20;
+                const gDist = Math.hypot(gx, gy);
+                if (gDist > 0.01) {
+                  const factor = Math.min(1.0, gDist) * cursorInfluence;
+                  targetGazeX = (gx / gDist) * factor;
+                  targetGazeY = (gy / gDist) * factor;
+                }
+              }
+
+              gazeX += (targetGazeX - gazeX) * f(14);
+              gazeY += (targetGazeY - gazeY) * f(14);
 
               const neutral = logical === 'rest';
               if (neutral) {
@@ -842,10 +966,12 @@
               gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, tex[faceB] || tex.rest);
               gl.uniform1f(U.fade, Math.min(1, (now - fadeT) / fadeMs));
               gl.uniform2f(U.lean, leanX, leanY);
+              gl.uniform2f(U.gaze, gazeX, gazeY);
               gl.uniform1f(U.breath, reduced ? 0 : Math.sin(now * 0.0018) * 0.0045);
               gl.uniform1f(U.puffAmt, puffNow);
-              gl.uniform1f(U.kissAmt, kissNow);
               gl.uniform1f(U.blushAmt, blushNow);
+              gl.uniform3f(U.hairTint, currentHairTint[0], currentHairTint[1], currentHairTint[2]);
+              gl.uniform1f(U.hairAmt, currentHairAmt);
               gl.drawElements(gl.TRIANGLES, idx.length, gl.UNSIGNED_SHORT, 0);
             }
 
