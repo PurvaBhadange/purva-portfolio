@@ -1,0 +1,830 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Purva Bhadange -- AI/ML &amp; Full-Stack Engineer</title>
+    <meta name="description" content="Portfolio of Purva Manishrao Bhadange -- B.Tech AI &amp; ML student building RAG systems, multi-agent pipelines, and full-stack applications." />
+    <meta property="og:title" content="Purva Bhadange -- AI/ML &amp; Full-Stack Engineer" />
+    <meta property="og:description" content="Portfolio of Purva Manishrao Bhadange -- B.Tech AI &amp; ML student building RAG systems, multi-agent pipelines, and full-stack applications." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800;900&family=Playfair+Display:wght@700;800;900&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // Wait for React to mount the portrait elements, then boot the verbatim Living Portrait engine
+      (function bootLivingPortrait() {
+        function init() {
+          if (window.__faceEngine) return;
+          if (!document.getElementById('faceGl') || !document.getElementById('magnetWrap')) {
+            requestAnimationFrame(init);
+            return;
+          }
+
+          // ===== LIVING PORTRAIT (PURVA 3D — OPTIMIZED LIKENESS & MESH) =====
+          (() => {
+            const ASSETS = {
+              rest: '/src/assets/images/purva_tee_smile_1794836201158.jpg',
+              closed: '/src/assets/images/purva_tee_closed_1794836202592.jpg',
+              smile: '/src/assets/images/purva_tee_rest_1794836202513.jpg',
+              wink: '/src/assets/images/purva_tee_wink_1794836205524.jpg',
+              shock: '/src/assets/images/purva_tee_shock_1794836210841.jpg',
+            };
+            const FACE_ALIAS = {
+              rest: 'rest',
+              closed: 'closed',
+              half: 'closed',
+              snore: 'closed',
+              smile: 'smile',
+              grin: 'smile',
+              laugh: 'smile',
+              hearts: 'smile',
+              stars: 'smile',
+              smug: 'smile',
+              shy: 'smile',
+              kiss: 'smile',
+              wink: 'wink',
+              winkl: 'wink',
+              winkr: 'wink',
+              tongue: 'wink',
+              puff: 'wink',
+              cross: 'wink',
+              shock: 'shock',
+              scared: 'shock',
+              ouch: 'shock',
+              angry: 'shock',
+              yawn: 'shock',
+              yawn1: 'shock',
+              yawn2: 'shock',
+              yawn4: 'shock',
+              sneeze1: 'closed',
+              sneeze2: 'shock',
+              dizzy: 'shock',
+              wind: 'shock',
+              sick: 'shock',
+              scrunch: 'closed',
+              deadpan: 'rest',
+              raised: 'shock',
+              cry: 'closed',
+              fish: 'wink',
+              whistle1: 'wink',
+              whistle2: 'smile',
+              gum1: 'smile',
+              gum2: 'wink',
+              gum3: 'wink',
+              gumpop: 'shock',
+            };
+
+            const OVER = 1.7, N = 72, M = N + 1, SPAN = OVER / N, ORIGIN = .5 - OVER / 2;
+            const WOBBLE = 2.3 * 2 * Math.PI, REACH = .085 / SPAN, C = REACH * WOBBLE, GAMMA = 2 * .14 * WOBBLE, NU = .2 * C;
+
+            const wrap = document.getElementById('magnetWrap'), inner = document.getElementById('magnetInner'), canvas = document.getElementById('faceGl');
+            const fly = document.getElementById('faceFly'), hand = document.getElementById('faceHand');
+            const heartsEl = document.getElementById('faceHearts'), starsEl = document.getElementById('faceStars'), zzzEl = document.getElementById('faceZzz');
+            const gl = canvas.getContext('webgl', {alpha: true, premultipliedAlpha: true, antialias: true});
+            if (!gl) return;
+            window.__faceEngine = true;
+            const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+            // Sculpted facial-depth vertex shader: preserves Purva's central bone structure while adding 3D head parallax, cheek puff & breathing
+            const VS = `attribute vec2 a, d; attribute float s; varying vec2 vUv; varying float vS; varying float vDepth;
+              uniform vec2 lean; uniform float overS; uniform float breath; uniform float puffAmt;
+              void main(){
+                vUv = a;
+                vS = s;
+                // Facial relief depth: nose bridge & cheeks stand forward, hair/neck/shoulders recede
+                vec2 rel = a - vec2(0.5, 0.41);
+                float headMask = exp(-dot(rel * vec2(1.0, 0.85), rel * vec2(1.0, 0.85)) * 10.5);
+                float noseTip = exp(-dot((a - vec2(0.5, 0.445)) * vec2(3.2, 2.6), (a - vec2(0.5, 0.445)) * vec2(3.2, 2.6)) * 8.0) * 0.35;
+                float cheekL = exp(-dot((a - vec2(0.415, 0.455)) * 2.5, (a - vec2(0.415, 0.455)) * 2.5) * 7.0) * 0.16;
+                float cheekR = exp(-dot((a - vec2(0.585, 0.455)) * 2.5, (a - vec2(0.585, 0.455)) * 2.5) * 7.0) * 0.16;
+                float neckFade = smoothstep(0.76, 0.50, a.y);
+                float depth = clamp((0.35 + 0.65 * headMask + noseTip + cheekL + cheekR) * neckFade, 0.08, 1.35);
+                vDepth = depth;
+
+                // Cheek puff bulge outward when puffAmt > 0
+                vec2 cL = a - vec2(0.405, 0.468);
+                vec2 cR = a - vec2(0.595, 0.468);
+                vec2 puffDisp = (normalize(cL + vec2(1e-4)) * exp(-dot(cL, cL) * 240.0) + normalize(cR + vec2(1e-4)) * exp(-dot(cR, cR) * 240.0)) * puffAmt * 0.022;
+
+                // Subtle 3D foreshortening around head pivot (0.5, 0.48)
+                vec2 pivot = a - vec2(0.5, 0.48);
+                vec2 turnScale = vec2(1.0 - abs(lean.x) * 0.85, 1.0 - abs(lean.y) * 0.65);
+                vec2 shoulderLift = vec2(0.0, -breath * smoothstep(0.68, 0.92, a.y) * (1.0 - smoothstep(0.18, 0.48, abs(a.x - 0.5))));
+                vec2 p = vec2(0.5, 0.48) + pivot * turnScale + d + puffDisp + lean * depth + shoulderLift;
+                gl_Position = vec4(vec2(p.x - .5, .5 - p.y) * 2. / overS, 0., 1.);
+              }`;
+            const FS = `precision highp float; varying vec2 vUv; varying float vS; varying float vDepth;
+              uniform sampler2D faceA, faceB;
+              uniform float fade;
+              uniform vec2 lean;
+              uniform float kissAmt;
+              uniform float puffAmt;
+              uniform float blushAmt;
+              void main(){
+                if(vUv.x<0.||vUv.y<0.||vUv.x>1.||vUv.y>1.){ gl_FragColor = vec4(0.); return; }
+
+                // Kiss & puff lip-pucker UV warp centered right on Purva's lips (0.50, 0.520)
+                float pout = max(kissAmt, puffAmt * 0.65);
+                vec2 uv = vUv;
+                vec2 mRel = uv - vec2(0.50, 0.520);
+                vec2 mNorm = vec2(mRel.x / 0.078, mRel.y / 0.044);
+                float mW = exp(-dot(mNorm, mNorm) * 2.1) * pout;
+                uv.x += mRel.x * 0.44 * mW;
+                uv.y -= mRel.y * 0.14 * mW - 0.004 * kissAmt * mW;
+
+                vec4 c = mix(texture2D(faceA, uv), texture2D(faceB, uv), fade);
+                if(c.a < .004){ gl_FragColor = vec4(0.); return; }
+
+                vec3 col = c.rgb / max(c.a, 0.001);
+
+                // Soft rosy cheek blush during kiss / flirt / puff
+                if(blushAmt > 0.001){
+                  vec2 bL = (uv - vec2(0.392, 0.456)) / vec2(0.056, 0.036);
+                  vec2 bR = (uv - vec2(0.608, 0.456)) / vec2(0.056, 0.036);
+                  float bMask = max(exp(-dot(bL, bL) * 1.8), exp(-dot(bR, bR) * 1.8));
+                  col = mix(col, col * vec3(1.10, 0.83, 0.85) + vec3(0.11, 0.02, 0.04), bMask * blushAmt * 0.46);
+                }
+
+                // Soft rosy kiss lip sheen during kiss expression
+                if(kissAmt > 0.001){
+                  vec2 lRel = (uv - vec2(0.50, 0.522)) / vec2(0.036, 0.022);
+                  float lMask = exp(-dot(lRel, lRel) * 2.2);
+                  col = mix(col, vec3(0.84, 0.35, 0.44), lMask * kissAmt * 0.30);
+                }
+
+                // Subtle directional sheen matched to head turn without distorting natural skin tone
+                float turnShade = 1.0 + dot(vUv - vec2(0.5, 0.41), lean) * 1.4 * vDepth;
+                float shade = clamp(vS * turnShade, 0.90, 1.10);
+                gl_FragColor = vec4(clamp(col * shade, 0.0, 1.0) * c.a, c.a);
+              }`;
+            const sh = (t, s) => { const o = gl.createShader(t); gl.shaderSource(o, s); gl.compileShader(o); if (!gl.getShaderParameter(o, gl.COMPILE_STATUS)) console.error(gl.getShaderInfoLog(o)); return o; };
+            const pr = gl.createProgram();
+            gl.attachShader(pr, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, FS));
+            gl.linkProgram(pr); gl.useProgram(pr);
+            const U = {over_: gl.getUniformLocation(pr, 'overS')};
+            for (const n of ['lean', 'breath', 'puffAmt', 'kissAmt', 'blushAmt', 'faceA', 'faceB', 'fade']) U[n] = gl.getUniformLocation(pr, n);
+            gl.uniform1f(U.over_, OVER);
+            gl.uniform1i(U.faceA, 0); gl.uniform1i(U.faceB, 1);
+
+            // ---- the sheet: damped wave equation with anatomical bone-stiffness weighting ----
+            const count = M * M, ux = new Float32Array(count), uy = new Float32Array(count), vx = new Float32Array(count), vy = new Float32Array(count);
+            const rest = new Float32Array(count * 2), dyn = new Float32Array(count * 3);
+            const sx = new Float32Array(count), sy = new Float32Array(count);
+            const stiffness = new Float32Array(count);
+            const hairVert = new Float32Array(count);
+            for (let j = 0, k = 0; j < M; j++) for (let i = 0; i < M; i++) {
+              const u = ORIGIN + i * SPAN, v = ORIGIN + j * SPAN;
+              rest[k++] = u; rest[k++] = v;
+              // Keep eyes/nose-bridge slightly firmer to preserve Purva's likeness; cheeks & hair stay extra bouncy
+              const idxN = j * M + i;
+              const eyeBand = Math.exp(-Math.pow((v - 0.365) / 0.055, 2) - Math.pow((u - 0.5) / 0.14, 2));
+              const noseBridge = Math.exp(-Math.pow((v - 0.425) / 0.07, 2) - Math.pow((u - 0.5) / 0.055, 2));
+              stiffness[idxN] = 1.0 + 0.55 * Math.max(eyeBand, noseBridge);
+              const fa = (u - 0.50) / 0.175, fb = (v - 0.41) / 0.225;
+              const outsideFace = Math.min(1, Math.max(0, (fa * fa + fb * fb - 0.85) * 1.4));
+              hairVert[idxN] = v < 0.78 ? outsideFace * Math.min(1, Math.max(0, (0.80 - v) * 4)) : 0;
+            }
+            const idx = new Uint16Array(N * N * 6);
+            for (let j = 0, k = 0; j < N; j++) for (let i = 0; i < N; i++) { const a = j * M + i, b = a + 1, c = a + M, d = c + 1; idx[k++] = a; idx[k++] = c; idx[k++] = b; idx[k++] = b; idx[k++] = c; idx[k++] = d; }
+            gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer()); gl.bufferData(gl.ARRAY_BUFFER, rest, gl.STATIC_DRAW);
+            const aa = gl.getAttribLocation(pr, 'a'); gl.enableVertexAttribArray(aa); gl.vertexAttribPointer(aa, 2, gl.FLOAT, false, 0, 0);
+            const dynBuf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, dynBuf); gl.bufferData(gl.ARRAY_BUFFER, dyn, gl.DYNAMIC_DRAW);
+            const ad = gl.getAttribLocation(pr, 'd'), as = gl.getAttribLocation(pr, 's');
+            gl.enableVertexAttribArray(ad); gl.vertexAttribPointer(ad, 2, gl.FLOAT, false, 12, 0);
+            gl.enableVertexAttribArray(as); gl.vertexAttribPointer(as, 1, gl.FLOAT, false, 12, 8);
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createBuffer()); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, idx, gl.STATIC_DRAW);
+            gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA); gl.clearColor(0, 0, 0, 0);
+
+            let brush = null;
+            function takeHold(u, v, radius = .22) {
+              const list = [];
+              for (let k = 0; k < count; k++) {
+                const dx = rest[k * 2] + ux[k] - u, dy = rest[k * 2 + 1] + uy[k] - v, w = Math.exp(-(dx * dx + dy * dy) / (radius * radius));
+                if (w > .02) list.push([k, w, ux[k], uy[k]]);
+              }
+              brush = {u, v, list, px: 0, py: 0};
+            }
+            const GAP = SPAN * .34, lineA = new Float32Array(M), lineB = new Float32Array(M), lineP = new Float32Array(M);
+            function order(start, stride, field, base) {
+              for (let i = 0; i < M; i++) { const k = start + i * stride; lineP[i] = base[k] + field[k]; }
+              lineA[0] = lineP[0]; for (let i = 1; i < M; i++) lineA[i] = Math.max(lineP[i], lineA[i - 1] + GAP);
+              lineB[N] = lineP[N]; for (let i = N - 1; i >= 0; i--) lineB[i] = Math.min(lineP[i], lineB[i + 1] - GAP);
+              for (let i = 0; i < M; i++) { const k = start + i * stride; field[k] = (lineA[i] + lineB[i]) / 2 - base[k]; }
+            }
+            const restX = new Float32Array(count), restY = new Float32Array(count);
+            for (let k = 0; k < count; k++) { restX[k] = rest[k * 2]; restY[k] = rest[k * 2 + 1]; }
+            function untangle() {
+              for (let pass = 0; pass < 2; pass++) {
+                for (let j = 0; j < M; j++) order(j * M, 1, sx, restX);
+                for (let i = 0; i < M; i++) order(i, M, sy, restY);
+              }
+            }
+
+            const H = 1 / 240; let simLeft = 0;
+            let windStrength = 0, simClock = 0;
+            function step(dt) {
+              simClock += dt;
+              const c2 = C * C, wo2 = WOBBLE * WOBBLE;
+              for (let j = 1; j < N; j++) for (let i = 1; i < N; i++) {
+                const k = j * M + i, l = k - 1, r = k + 1, t = k - M, b = k + M, st = stiffness[k];
+                const lx = ux[l] + ux[r] + ux[t] + ux[b] - 4 * ux[k], ly = uy[l] + uy[r] + uy[t] + uy[b] - 4 * uy[k];
+                const lvx = vx[l] + vx[r] + vx[t] + vx[b] - 4 * vx[k], lvy = vy[l] + vy[r] + vy[t] + vy[b] - 4 * vy[k];
+                let windFx = 0;
+                if (windStrength > 0.01 && hairVert[k] > 0.02) {
+                  windFx = (Math.sin(simClock * 13 + restY[k] * 11) + 0.55) * windStrength * hairVert[k] * 0.42;
+                }
+                vx[k] += (c2 * lx - wo2 * st * ux[k] - GAMMA * vx[k] + NU * lvx + windFx) * dt;
+                vy[k] += (c2 * ly - wo2 * st * uy[k] - GAMMA * vy[k] + NU * lvy) * dt;
+              }
+              if (brush) for (const [k, w, u0, v0] of brush.list) {
+                const K = 3000 * w, D = 90 * w;
+                vx[k] += ((u0 + brush.px * w - ux[k]) * K - vx[k] * D) * dt;
+                vy[k] += ((v0 + brush.py * w - uy[k]) * K - vy[k] * D) * dt;
+              }
+              for (let k = 0; k < count; k++) { ux[k] += vx[k] * dt; uy[k] += vy[k] * dt; }
+            }
+            function poke(u, v, dx, dy, radius = .09) {
+              for (let k = 0; k < count; k++) {
+                const ax = rest[k * 2] - u, ay = rest[k * 2 + 1] - v, w = Math.exp(-(ax * ax + ay * ay) / (radius * radius));
+                vx[k] += dx * w / stiffness[k]; vy[k] += dy * w / stiffness[k];
+              }
+            }
+
+            // ---- pictures with flood-fill alpha cutout, head-box registration, soft vignette, and tonal matching ----
+            const tex = {};
+            const param = () => {
+              gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+              gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+              gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+              gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+            };
+            gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
+            const load = name => new Promise(res => {
+              const i = new Image();
+              i.onload = () => res(i);
+              i.onerror = () => res(null);
+              i.src = ASSETS[name];
+            });
+
+            function measureHead(canvasEl) {
+              const SIZE = canvasEl.width;
+              const ctx = canvasEl.getContext('2d', {willReadFrequently: true});
+              const d = ctx.getImageData(0, 0, SIZE, SIZE).data;
+              let minX = SIZE, maxX = 0, minY = SIZE, maxY = 0;
+              let sumR = 0, sumG = 0, sumB = 0, skinN = 0;
+              const yLimit = Math.floor(SIZE * 0.68);
+              for (let y = 0; y < yLimit; y++) {
+                for (let x = 0; x < SIZE; x++) {
+                  const o = (y * SIZE + x) * 4;
+                  if (d[o + 3] > 180) {
+                    if (x < minX) minX = x;
+                    if (x > maxX) maxX = x;
+                    if (y < minY) minY = y;
+                    if (y > maxY) maxY = y;
+                    // Sample central face tone for cross-expression exposure matching
+                    if (x > SIZE * 0.40 && x < SIZE * 0.60 && y > SIZE * 0.32 && y < SIZE * 0.54) {
+                      sumR += d[o]; sumG += d[o + 1]; sumB += d[o + 2]; skinN++;
+                    }
+                  }
+                }
+              }
+              return {
+                cx: (minX + maxX) * 0.5 / SIZE,
+                topY: minY / SIZE,
+                w: Math.max(0.2, (maxX - minX) / SIZE),
+                tone: skinN > 0 ? [sumR / skinN, sumG / skinN, sumB / skinN] : [140, 105, 85],
+              };
+            }
+
+            const smoothstep = (e0, e1, x) => {
+              const t = Math.max(0, Math.min(1, (x - e0) / (e1 - e0)));
+              return t * t * (3 - 2 * t);
+            };
+
+            function cutoutPortrait(img, anchor) {
+              const SIZE = innerWidth < 760 ? 512 : 768;
+              const c = document.createElement('canvas');
+              c.width = SIZE; c.height = SIZE;
+              const ctx = c.getContext('2d', {willReadFrequently: true});
+              ctx.drawImage(img, 0, 0, SIZE, SIZE);
+              const im = ctx.getImageData(0, 0, SIZE, SIZE);
+              const d = im.data;
+              const bg = new Uint8Array(SIZE * SIZE);
+              const q = new Int32Array(SIZE * SIZE);
+              let qh = 0, qt = 0;
+
+              const cornerLum = (d[0] + d[1] + d[2]) / 3;
+              const isLightBg = cornerLum > 180;
+
+              const isBg = idx4 => {
+                const r = d[idx4], g = d[idx4 + 1], b = d[idx4 + 2];
+                if (isLightBg) {
+                  const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+                  return r > 218 && g > 218 && b > 218 && (mx - mn) < 32;
+                }
+                return r < 20 && g < 20 && b < 20;
+              };
+              const push = p => {
+                if (bg[p]) return;
+                if (isBg(p * 4)) { bg[p] = 1; q[qt++] = p; }
+              };
+
+              for (let x = 0; x < SIZE; x++) {
+                push(x);
+                if (isLightBg) push((SIZE - 1) * SIZE + x);
+              }
+              for (let y = 0; y < SIZE; y++) { push(y * SIZE); push(y * SIZE + SIZE - 1); }
+
+              while (qh < qt) {
+                const p = q[qh++];
+                const x = p % SIZE, y = (p / SIZE) | 0;
+                if (x > 0) push(p - 1);
+                if (x + 1 < SIZE) push(p + 1);
+                if (y > 0) push(p - SIZE);
+                if (y + 1 < SIZE) push(p + SIZE);
+              }
+
+              // Build a 2-pixel border distance pass so hair & sleeves melt smoothly with zero hard edge
+              const edgeDist = new Uint8Array(SIZE * SIZE);
+              for (let y = 1; y < SIZE - 1; y++) {
+                for (let x = 1; x < SIZE - 1; x++) {
+                  const p = y * SIZE + x;
+                  if (bg[p]) continue;
+                  if (bg[p - 1] || bg[p + 1] || bg[p - SIZE] || bg[p + SIZE]) edgeDist[p] = 1;
+                }
+              }
+              for (let y = 2; y < SIZE - 2; y++) {
+                for (let x = 2; x < SIZE - 2; x++) {
+                  const p = y * SIZE + x;
+                  if (!bg[p] && !edgeDist[p] && (edgeDist[p - 1] === 1 || edgeDist[p + 1] === 1 || edgeDist[p - SIZE] === 1 || edgeDist[p + SIZE] === 1)) {
+                    edgeDist[p] = 2;
+                  }
+                }
+              }
+
+              for (let y = 0; y < SIZE; y++) {
+                const ny = y / SIZE;
+                // Smooth editorial vignette fade across lower torso & bottom corners so portrait integrates into #0C0C0C
+                const bottomFade = 1 - smoothstep(0.75, 0.985, ny);
+                for (let x = 0; x < SIZE; x++) {
+                  const nx = x / SIZE;
+                  const p = y * SIZE + x;
+                  const o = p * 4;
+                  if (bg[p]) {
+                    d[o + 3] = 0;
+                  } else {
+                    const sideFade = 1 - smoothstep(0.41, 0.495, Math.abs(nx - 0.5)) * smoothstep(0.68, 0.92, ny);
+                    const torsoFade = bottomFade * sideFade;
+                    const ed = edgeDist[p];
+                    if (isLightBg) {
+                      const lum = (d[o] + d[o + 1] + d[o + 2]) / 3;
+                      let edgeAlpha = ed === 1 ? Math.min(255, Math.max(0, (240 - lum) * 3.5)) : ed === 2 ? 200 : 255;
+                      if (ed > 0 && lum > 140) {
+                        d[o] = Math.round(d[o] * 0.28);
+                        d[o + 1] = Math.round(d[o + 1] * 0.30);
+                        d[o + 2] = Math.round(d[o + 2] * 0.34);
+                      }
+                      d[o + 3] = Math.round(edgeAlpha * torsoFade);
+                    } else {
+                      const lum = Math.max(d[o], d[o + 1], d[o + 2]);
+                      let edgeAlpha = 255;
+                      if (ed === 1) edgeAlpha = Math.min(180, Math.max(24, (lum - 10) * 3.8));
+                      else if (ed === 2) edgeAlpha = Math.min(240, Math.max(150, lum * 4));
+                      // Subtle edge darkening on bright sleeve borders so white fabric never halos against #0C0C0C
+                      if (ed === 1 && ny > 0.65 && lum > 140) {
+                        d[o] = Math.round(d[o] * 0.85);
+                        d[o + 1] = Math.round(d[o + 1] * 0.85);
+                        d[o + 2] = Math.round(d[o + 2] * 0.85);
+                      }
+                      d[o + 3] = Math.round(edgeAlpha * torsoFade);
+                    }
+                  }
+                }
+              }
+              ctx.putImageData(im, 0, 0);
+
+              // Register secondary expression frames to the exact head center, scale, and skin tone of rest
+              if (anchor) {
+                const cur = measureHead(c);
+                const scale = Math.max(0.90, Math.min(1.10, anchor.w / cur.w));
+                const aligned = document.createElement('canvas');
+                aligned.width = SIZE; aligned.height = SIZE;
+                const actx = aligned.getContext('2d', {willReadFrequently: true});
+                actx.save();
+                actx.translate(anchor.cx * SIZE, anchor.topY * SIZE);
+                actx.scale(scale, scale);
+                actx.translate(-cur.cx * SIZE, -cur.topY * SIZE);
+                actx.drawImage(c, 0, 0);
+                actx.restore();
+
+                // Gentle tonal balance so blinks and expression crossfades stay seamless
+                const aim = actx.getImageData(0, 0, SIZE, SIZE);
+                const ad2 = aim.data;
+                const gainR = Math.max(0.88, Math.min(1.12, 0.5 + 0.5 * (anchor.tone[0] / Math.max(1, cur.tone[0]))));
+                const gainG = Math.max(0.88, Math.min(1.12, 0.5 + 0.5 * (anchor.tone[1] / Math.max(1, cur.tone[1]))));
+                const gainB = Math.max(0.88, Math.min(1.12, 0.5 + 0.5 * (anchor.tone[2] / Math.max(1, cur.tone[2]))));
+                for (let y = 0; y < SIZE; y++) {
+                  const ny = y / SIZE;
+                  const bottomFade = 1 - smoothstep(0.75, 0.985, ny);
+                  for (let x = 0; x < SIZE; x++) {
+                    const nx = x / SIZE;
+                    const o = (y * SIZE + x) * 4;
+                    if (ad2[o + 3] > 0) {
+                      const sideFade = 1 - smoothstep(0.41, 0.495, Math.abs(nx - 0.5)) * smoothstep(0.68, 0.92, ny);
+                      ad2[o] = Math.min(255, Math.round(ad2[o] * gainR));
+                      ad2[o + 1] = Math.min(255, Math.round(ad2[o + 1] * gainG));
+                      ad2[o + 2] = Math.min(255, Math.round(ad2[o + 2] * gainB));
+                      ad2[o + 3] = Math.round(ad2[o + 3] * bottomFade * sideFade);
+                    }
+                  }
+                }
+                actx.putImageData(aim, 0, 0);
+                return aligned;
+              }
+              return c;
+            }
+
+            function upload(name, sourceCanvas) {
+              const t = gl.createTexture();
+              gl.activeTexture(gl.TEXTURE5);
+              gl.bindTexture(gl.TEXTURE_2D, t);
+              gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, sourceCanvas);
+              param();
+              tex[name] = t;
+            }
+
+            function hitMap(sourceCanvas) {
+              const a = document.createElement('canvas'); a.width = a.height = 128;
+              const ac = a.getContext('2d', {willReadFrequently: true});
+              ac.drawImage(sourceCanvas, 0, 0, 128, 128);
+              alphaMap = ac.getImageData(0, 0, 128, 128).data;
+            }
+
+            // ---- calibrated facial coordinates & expressions for Purva ----
+            const SPOT = {nose: [.50, .445], brow: [.50, .305], cheekR: [.60, .455], cheekL: [.40, .455], mouth: [.50, .525]};
+            const ACTS = {
+              sneeze: [['closed', 85, 240], ['shock', 55, 340, {jolt: [.50, .445, 0, 1.35, .28], lean: [0, .026]}], ['smile', 120, 720]],
+              flirt: [['wink', 95, 560, {blush: 0.75}], ['wink', 95, 1300, {blush: 1, hearts: true, lean: [0.004, 0.014]}], ['smile', 120, 820]],
+              kiss: [['wink', 90, 1850, {kiss: 1, blush: 1, jolt: [.50, .52, 0, -0.18, .12], lean: [0.004, 0.016]}], ['smile', 130, 760]],
+              puff: [['wink', 85, 1450, {puff: 1, blush: 0.85, jolt: [.50, .46, 0, -0.15, .14], lean: [0, -0.008]}], ['smile', 130, 680]],
+              wind: [['shock', 90, 420, {wind: 1, lean: [-0.018, 0.004]}], ['wink', 110, 1300, {wind: 0.9, lean: [0.015, 0.003]}], ['smile', 130, 700]],
+              dizzy: [['shock', 90, 1650, {dizzy: true, lean: [-0.014, -0.008]}], ['closed', 110, 450], ['smile', 130, 700]],
+              yawn: [['shock', 140, 1250, {zzz: true, lean: [0, -0.012]}], ['closed', 140, 1100, {zzz: true}], ['smile', 140, 650]],
+              cheeky: [['wink', 90, 520, {blush: 0.65}], ['smile', 110, 680]],
+              wow: [['shock', 100, 620], ['smile', 120, 920]],
+              fly: 'fly',
+              tug: 'tug',
+            };
+            const ROTATION = ['fly', 'kiss', 'flirt', 'tug', 'wind', 'sneeze', 'puff', 'yawn', 'wow', 'cheeky'];
+            const ZONES = {
+              hover: {eyeL: 'wink', eyeR: 'wink', nose: 'smile', mouth: 'smile'},
+              tap: {brow: 'shock', eyeL: 'wink', eyeR: 'wink', nose: 'act:sneeze', mouth: 'act:kiss', cheek: 'act:puff', chin: 'smile', hair: 'wink'}
+            };
+            // Calibrated to Purva's true head & facial feature proportions inside the 1:1 frame
+            const zoneAt = (u, v) => {
+              const a = (u - .50) / .175, b = (v - .41) / .225;
+              if (a * a + b * b > 1 || v < .24) return 'hair';
+              if (v < .33) return 'brow';
+              if (Math.abs(v - .365) < .038 && u > .355 && u < .475) return 'eyeL';
+              if (Math.abs(v - .365) < .038 && u > .525 && u < .645) return 'eyeR';
+              if (Math.abs(u - .50) < .048 && v >= .36 && v < .49) return 'nose';
+              if (v >= .49 && v < .57 && Math.abs(u - .50) < .085) return 'mouth';
+              return v >= .57 ? 'chin' : 'cheek';
+            };
+
+            let ready = false, alphaMap = null, tStart = 0, last = performance.now();
+            let mx = 0, my = 0, pu = .5, pv = .5, onHead = false, wasOnHead = false, headHoverCount = 0, zone = null, zoneSince = 0;
+            let lastInput = -1e9, awake = false, pressed = false, downAt = 0, downU = 0, downV = 0, lastX = 0, lastY = 0, speed = 0, shake = 0;
+            let moodFace = null, moodUntil = 0, pulls = [];
+            let act = null, actI = 0, actT = 0, rotation = [], nextIdle = 22000;
+            let faceA = 'rest', faceB = 'rest', fadeT = 0, fadeMs = 1;
+            let logical = 'rest', logicalMs = 95, eyeNow = 'rest', eyeNowMs = 50;
+            let nextBlink = 0, blinkStep = -1, blinkT = 0;
+            let leanX = 0, leanY = 0, lvX = 0, lvY = 0, wantLean = [0, 0];
+            const pullNow = [0, 0];
+
+            // Procedural expression targets & smoothed shader values
+            let kissNow = 0, kissTarget = 0;
+            let puffNow = 0, puffTarget = 0;
+            let blushNow = 0, blushTarget = 0;
+            let windTarget = 0;
+            let dizzyMode = false;
+
+            const resolveTex = n => FACE_ALIAS[n] || 'rest';
+            const setFace = (n, ms) => { logical = n; logicalMs = ms; };
+            const setEye = (cell, ms) => { eyeNow = cell; eyeNowMs = ms; };
+
+            function show(n, ms, now) {
+              const target = resolveTex(n);
+              if (!tex[target] || target === faceB) return;
+              faceA = (now - fadeT) / fadeMs > .5 ? faceB : faceA;
+              faceB = target;
+              fadeT = now;
+              fadeMs = Math.min(120, Math.max(1, ms));
+              window.dispatchEvent(new CustomEvent('purva:facechange', { detail: { face: target } }));
+            }
+            function compose(now) {
+              if (logical !== 'rest') show(logical, logicalMs, now);
+              else show(eyeNow, eyeNowMs, now);
+            }
+
+            function resetActFx() {
+              kissTarget = 0; puffTarget = 0; blushTarget = 0; windTarget = 0; dizzyMode = false;
+              if (heartsEl) heartsEl.classList.remove('active');
+              if (starsEl) starsEl.classList.remove('active');
+              if (zzzEl) zzzEl.classList.remove('active');
+            }
+
+            function startAct(name, now) {
+              endAct();
+              const a = ACTS[name];
+              if (a === 'fly') act = flyAct(); else if (a === 'tug') act = tugAct(); else act = a;
+              actI = -1; actT = now; advance(now);
+            }
+            function endAct() {
+              act = null; fly.style.opacity = 0; hand.style.opacity = 0;
+              resetActFx();
+              if (handHeld) { handHeld = false; brush = null; pullNow[0] = pullNow[1] = 0; }
+            }
+            function advance(now) {
+              actI++;
+              if (!act || actI >= act.length) { endAct(); return; }
+              const [showName, fade, , x] = act[actI]; actT = now;
+              if (showName === 'closed') { setFace('rest', fade); setEye('closed', fade); wantEyes = 'closed'; }
+              else { wantEyes = null; setFace(showName, fade); }
+              resetActFx();
+              if (x) {
+                if (x.jolt) poke(...x.jolt);
+                wantLean = x.lean || [0, 0];
+                if (x.kiss) kissTarget = x.kiss;
+                if (x.puff) puffTarget = x.puff;
+                if (x.blush) blushTarget = x.blush;
+                if (x.wind) windTarget = x.wind;
+                if (x.dizzy) dizzyMode = true;
+                if (heartsEl && x.hearts) heartsEl.classList.add('active');
+                if (starsEl && x.dizzy) starsEl.classList.add('active');
+                if (zzzEl && x.zzz) zzzEl.classList.add('active');
+                if (x.call) x.call(now);
+              } else wantLean = [0, 0];
+            }
+            let wantEyes = null, handHeld = false, handFrom = [1.4, .9], handTo = [1.4, .9], flyFrom = [1.4, 0], flyTo = [1.4, 0], moveT = 0, moveMs = 1;
+            const place = (el, u, v) => { el.style.left = ((u - .5) * 100 + 50) + '%'; el.style.top = ((v - .5) * 100 + 50) + '%'; };
+            const moveHand = (u, v, ms) => (now) => { handFrom = handTo; handTo = [u, v]; moveT = now; moveMs = ms; };
+            const moveFly = (u, v, ms) => (now) => { flyFrom = flyTo; flyTo = [u, v]; moveT = now; moveMs = ms; };
+
+            function flyAct() {
+              flyTo = [1.35, .02]; fly.style.opacity = 1;
+              const hop = (u, v, ms) => ['rest', 40, ms, {call: moveFly(u, v, ms * .9)}];
+              return [hop(.92, .2, 620), hop(.1, .32, 680), hop(.9, .66, 640), hop(.16, .62, 600), hop(...SPOT.nose, 520),
+                ['wink', 100, 850, {jolt: [.5, .455, 0, .25, .05]}],
+                ['smile', 90, 520, {call: moveFly(1.5, -.35, 600)}]];
+            }
+            function tugAct() {
+              handTo = [1.3, .86]; hand.style.opacity = 1; hand.classList.remove('shut');
+              const g = (u, v, ms, face, grip) => [face, 90, ms, {call: now => { moveHand(u, v, ms * .8)(now); handGrip = grip; }}];
+              return [g(...SPOT.cheekR, 760, 'rest', false), g(...SPOT.cheekR, 240, 'shock', 'on'),
+                g(.88, .44, 620, 'shock', 'pull'), g(.80, .48, 240, 'shock', 'pull'), g(.90, .43, 240, 'shock', 'pull'), g(.84, .46, 260, 'shock', 'pull'),
+                g(1.4, .22, 1000, 'wink', 'off'), ['smile', 120, 620]];
+            }
+            let handGrip = false;
+
+            const toUv = (x, y) => { const r = canvas.getBoundingClientRect(); return [((x - r.left) / r.width - .5) * OVER + .5, ((y - r.top) / r.height - .5) * OVER + .5]; };
+            const solid = (u, v) => alphaMap && u >= 0 && v >= 0 && u < 1 && v < 1 && alphaMap[((v * 128 | 0) * 128 + (u * 128 | 0)) * 4 + 3] > 40;
+            function wake(now) {
+              lastInput = now;
+              if (!awake) {
+                awake = true;
+                nextBlink = now + 1600;
+                setEye('rest', 100);
+              }
+              nextIdle = 22000 + Math.random() * 14000;
+            }
+
+            addEventListener('pointermove', e => {
+              const now = performance.now();
+              const dx = e.clientX - lastX, dy = e.clientY - lastY; lastX = e.clientX; lastY = e.clientY;
+              mx = e.clientX; my = e.clientY; [pu, pv] = toUv(mx, my);
+              speed += Math.hypot(dx, dy) * .004;
+              wake(now);
+              if (act && !pressed) endAct();
+              onHead = solid(pu, pv);
+              if (onHead && !wasOnHead && !pressed) {
+                headHoverCount += 1;
+                if (headHoverCount > 2) {
+                  moodFace = 'shock';
+                  moodUntil = now + 2200;
+                }
+                window.dispatchEvent(new CustomEvent('purva:porthover', { detail: { count: headHoverCount } }));
+              }
+              wasOnHead = onHead;
+              const z = onHead ? zoneAt(pu, pv) : null;
+              if (z !== zone) { zone = z; zoneSince = now; }
+              wrap.style.cursor = pressed ? 'grabbing' : onHead ? 'grab' : '';
+              if (onHead && !pressed) poke(pu, pv, dx * .00032, dy * .00032, .07);
+              if (pressed && brush) {
+                let px = pu - brush.u, py = pv - brush.v; const L = Math.hypot(px, py), lim = .22;
+                if (L > 0) { const k = lim * (1 - Math.exp(-L / lim)) / L; px *= k; py *= k; }
+                brush.px = px; brush.py = py;
+              }
+              // Smooth 3D magnetic tilt on #magnetInner when hovering portrait container
+              if (inner && !reduced) {
+                if (onHead && !pressed) {
+                  const tiltY = Math.max(-7, Math.min(7, (pu - 0.5) * 22));
+                  const tiltX = Math.max(-6, Math.min(6, (0.45 - pv) * 18));
+                  const shiftX = Math.max(-8, Math.min(8, (pu - 0.5) * 18));
+                  const shiftY = Math.max(-8, Math.min(8, (pv - 0.45) * 18));
+                  inner.style.transform = `perspective(920px) translate3d(${shiftX.toFixed(2)}px, ${shiftY.toFixed(2)}px, 0) rotateX(${tiltX.toFixed(2)}deg) rotateY(${tiltY.toFixed(2)}deg)`;
+                } else if (!pressed) {
+                  inner.style.transform = '';
+                }
+              }
+            });
+            wrap.addEventListener('pointerdown', e => {
+              if (e.target && e.target.closest && e.target.closest('[data-portrait-ui]')) return;
+              const now = performance.now(), [u, v] = toUv(e.clientX, e.clientY);
+              if (!solid(u, v)) return;
+              wake(now); endAct(); pressed = true; downAt = now; downU = u; downV = v; takeHold(u, v);
+              moodFace = null;
+              if (inner) inner.style.transform = '';
+              wrap.setPointerCapture(e.pointerId); e.preventDefault();
+            });
+            function release() {
+              if (!pressed) return;
+              const now = performance.now(), L = Math.hypot(brush.px, brush.py), z = zoneAt(downU, downV), held = now - downAt;
+              pressed = false; brush = null; wrap.style.cursor = onHead ? 'grab' : '';
+              pulls = pulls.filter(t => now - t < 14000);
+              if (L < .03 && held < 380) {
+                const r = ZONES.tap[z] || 'smile';
+                if (r.startsWith('act:')) {
+                  startAct(r.slice(4), now);
+                } else {
+                  moodFace = r; moodUntil = now + 1100;
+                  poke(downU, downV, 0, .42, .06);
+                }
+                return;
+              }
+              pulls.push(now);
+              if (pulls.length >= 3) {
+                pulls = [];
+                startAct(L > .14 ? 'dizzy' : 'puff', now);
+                return;
+              }
+              moodFace = L > .14 ? 'shock' : 'smile';
+              moodUntil = now + (700 + L * 2200);
+            }
+            addEventListener('pointerup', release); addEventListener('pointercancel', release);
+            addEventListener('pointerleave', () => {
+              zone = null; onHead = false; wasOnHead = false;
+              if (inner) inner.style.transform = '';
+            });
+            document.querySelectorAll('.contact-btn').forEach(b => {
+              b.addEventListener('pointerenter', () => { moodFace = 'smile'; moodUntil = performance.now() + 1e7; });
+              b.addEventListener('pointerleave', () => { moodFace = 'wink'; moodUntil = performance.now() + 700; });
+            });
+            addEventListener('scroll', () => { wake(performance.now()); }, {passive: true});
+
+            let flyPos = [1.4, 0], visible = true;
+            new IntersectionObserver(es => { visible = es[0].isIntersecting; }, {threshold: 0}).observe(canvas);
+            new ResizeObserver(() => {
+              const r = Math.min(devicePixelRatio || 1, 2), b = canvas.getBoundingClientRect();
+              canvas.width = b.width * r; canvas.height = b.height * r;
+              gl.viewport(0, 0, canvas.width, canvas.height);
+            }).observe(canvas);
+
+            function frame(now) {
+              requestAnimationFrame(frame);
+              const dt = Math.min(.04, (now - last) / 1000); last = now;
+              if (!ready || !visible) return;
+              const f = r => 1 - Math.exp(-dt * r);
+
+              speed *= Math.exp(-dt * 6); shake += ((speed > 1.5 ? 1 : 0) - shake) * f(speed > 1.5 ? 1.2 : .9);
+              if (starsEl && !act) {
+                starsEl.classList.toggle('active', shake > 0.72);
+              }
+
+              if (act) { if (now - actT > act[actI][2]) advance(now); }
+              else if (!reduced && !pressed && tStart && now - Math.max(lastInput, tStart) > nextIdle) {
+                if (!rotation.length) rotation = [...ROTATION];
+                startAct(rotation.shift(), now); lastInput = now; nextIdle = 22000 + Math.random() * 14000;
+                if (!awake) wake(now);
+              }
+
+              const mk = Math.min(1, (now - moveT) / moveMs), me = mk * mk * (3 - 2 * mk);
+              flyPos = [flyFrom[0] + (flyTo[0] - flyFrom[0]) * me + Math.sin(now * .02) * .012 * (1 - (mk >= 1 ? .85 : 0)), flyFrom[1] + (flyTo[1] - flyFrom[1]) * me + Math.cos(now * .027) * .012 * (1 - (mk >= 1 ? .85 : 0))];
+              place(fly, flyPos[0], flyPos[1]);
+              const hp = [handFrom[0] + (handTo[0] - handFrom[0]) * me, handFrom[1] + (handTo[1] - handFrom[1]) * me];
+              place(hand, hp[0], hp[1]);
+              if (handGrip === 'on' && !handHeld) { takeHold(hp[0], hp[1], .22); handHeld = true; hand.classList.add('shut'); handGrip = 'pull'; }
+              if (handHeld && brush) { brush.px = hp[0] - brush.u; brush.py = hp[1] - brush.v; }
+              if (handGrip === 'off' && handHeld) { handHeld = false; brush = null; hand.classList.remove('shut'); handGrip = false; }
+
+              let want = 'rest';
+              const pull = brush ? Math.hypot(brush.px, brush.py) : 0;
+              if (act) want = null;
+              else if (pressed) want = pull > .03 || zoneAt(downU, downV) !== 'hair' ? 'shock' : 'rest';
+              else if (moodFace && now < moodUntil) want = moodFace;
+              else if (shake > .65) want = 'shock';
+              else if (zone && now - zoneSince > 80 && ZONES.hover[zone]) want = ZONES.hover[zone];
+              if (want) setFace(want, want === 'rest' ? 115 : 90);
+
+              // Subtle hover blush when lingering over mouth/cheeks
+              const hoverBlush = (!act && !pressed && (zone === 'mouth' || zone === 'cheek')) ? 0.35 : 0;
+              const activeBlushTarget = Math.max(blushTarget, hoverBlush);
+
+              // Smooth shader uniforms for kiss pucker, puffed cheeks, blush & wind
+              kissNow += (kissTarget - kissNow) * f(12);
+              puffNow += (puffTarget - puffNow) * f(11);
+              blushNow += (activeBlushTarget - blushNow) * f(8);
+              windStrength += (windTarget - windStrength) * f(7);
+
+              const neutral = logical === 'rest';
+              if (neutral) {
+                if (wantEyes) setEye(wantEyes, 60);
+                else if (blinkStep >= 0) {
+                  const s = (now - blinkT) / 68 | 0;
+                  if (s !== blinkStep) {
+                    blinkStep = s;
+                    if (s === 0) setEye('closed', 45);
+                    else { setEye('rest', 65); blinkStep = -1; }
+                  }
+                } else {
+                  setEye('rest', 50);
+                  if (now > nextBlink) { blinkStep = 0; blinkT = now; setEye('closed', 45); nextBlink = now + 2200 + Math.random() * 3400; }
+                }
+              }
+
+              compose(now);
+
+              const dizzyWobbleX = dizzyMode ? Math.sin(now * 0.014) * 0.024 : 0;
+              const dizzyWobbleY = dizzyMode ? Math.cos(now * 0.011) * 0.014 : 0;
+              const tx = (pressed || handHeld ? (brush ? brush.px * .15 : 0) : awake ? (pu - .5) * .026 : 0) + wantLean[0] + dizzyWobbleX + Math.sin(now * .0009) * .0014;
+              const ty = (pressed || handHeld ? (brush ? brush.py * .15 : 0) : awake ? (pv - .43) * .016 : 0) + wantLean[1] + dizzyWobbleY + Math.sin(now * .0013) * .0020;
+              lvX += ((tx - leanX) * 70 - lvX * 8) * dt; lvY += ((ty - leanY) * 70 - lvY * 8) * dt;
+              leanX += lvX * dt; leanY += lvY * dt;
+
+              simLeft += dt;
+              let steps = 0;
+              while (simLeft >= H && steps < 9) { step(H); simLeft -= H; steps++; }
+              if (steps === 9) simLeft = 0;
+              for (let j = 0; j < M; j++) for (let i = 0; i < M; i++) {
+                const k = j * M + i, edge = i === 0 || j === 0 || i === N || j === N;
+                sx[k] = edge ? ux[k] : (ux[k] * 4 + ux[k - 1] + ux[k + 1] + ux[k - M] + ux[k + M]) / 8;
+                sy[k] = edge ? uy[k] : (uy[k] * 4 + uy[k - 1] + uy[k + 1] + uy[k - M] + uy[k + M]) / 8;
+              }
+              untangle();
+              for (let k = 0, o = 0; k < count; k++) {
+                dyn[o++] = sx[k]; dyn[o++] = sy[k];
+                const r = k % M, c = k / M | 0;
+                let sh = 1;
+                if (r > 0 && r < N && c > 0 && c < N) sh = Math.max(.90, Math.min(1.10, 1 - ((sx[k + 1] - sx[k - 1]) + (sy[k + M] - sy[k - M])) * 1.4));
+                dyn[o++] = sh;
+              }
+              gl.bindBuffer(gl.ARRAY_BUFFER, dynBuf); gl.bufferSubData(gl.ARRAY_BUFFER, 0, dyn);
+
+              gl.clear(gl.COLOR_BUFFER_BIT);
+              gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, tex[faceA] || tex.rest);
+              gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, tex[faceB] || tex.rest);
+              gl.uniform1f(U.fade, Math.min(1, (now - fadeT) / fadeMs));
+              gl.uniform2f(U.lean, leanX, leanY);
+              gl.uniform1f(U.breath, reduced ? 0 : Math.sin(now * 0.0018) * 0.0045);
+              gl.uniform1f(U.puffAmt, puffNow);
+              gl.uniform1f(U.kissAmt, kissNow);
+              gl.uniform1f(U.blushAmt, blushNow);
+              gl.drawElements(gl.TRIANGLES, idx.length, gl.UNSIGNED_SHORT, 0);
+            }
+
+            (async () => {
+              const base = await load('rest');
+              if (!base) return;
+              const cutBase = cutoutPortrait(base, null);
+              const anchor = measureHead(cutBase);
+              upload('rest', cutBase);
+              hitMap(cutBase);
+              document.getElementById('faceFallback').style.visibility = 'hidden';
+              ready = true; tStart = performance.now(); nextBlink = tStart + 2400; requestAnimationFrame(frame);
+              await Promise.all(['closed', 'smile', 'wink', 'shock'].map(async n => {
+                const img = await load(n);
+                if (img) upload(n, cutoutPortrait(img, anchor));
+              }));
+            })();
+          })();
+        }
+
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', () => requestAnimationFrame(init));
+        } else {
+          requestAnimationFrame(init);
+        }
+      })();
+    </script>
+  </body>
+</html>
