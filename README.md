@@ -9,10 +9,12 @@
 [![Vite](https://img.shields.io/badge/Vite-8.3-646CFF?style=for-the-badge&logo=vite&logoColor=white)](https://vitejs.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 [![WebGL](https://img.shields.io/badge/WebGL-Interactive_3D-990000?style=for-the-badge&logo=webgl&logoColor=white)](https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API)
-[![Vercel](https://img.shields.io/badge/Vercel-Deployed-black?style=for-the-badge&logo=vercel&logoColor=white)](https://purva-portfolio.vercel.app/)
+[![Live Demo](https://img.shields.io/badge/Live_Demo-purvabh--portfolio.vercel.app-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://purvabh-portfolio.vercel.app/)
 
 <p align="center">
-  <a href="https://github.com/PurvaBhadange/purva-portfolio"><strong>Explore Repository »</strong></a>
+  <a href="https://purvabh-portfolio.vercel.app/"><strong>🌐 View Live Portfolio »</strong></a>
+  &nbsp;•&nbsp;
+  <a href="https://github.com/PurvaBhadange/purva-portfolio"><strong>GitHub Repository</strong></a>
   &nbsp;•&nbsp;
   <a href="https://www.linkedin.com/in/purva-b-660982259/"><strong>LinkedIn Profile</strong></a>
   &nbsp;•&nbsp;
@@ -24,6 +26,8 @@
 ---
 
 ## • Overview
+
+> 🌐 **Live Website**: **[https://purvabh-portfolio.vercel.app/](https://purvabh-portfolio.vercel.app/)**
 
 This repository powers the official personal portfolio and interactive engineering showcase for **Purva Manishrao Bhadange** — a 3rd-year B.Tech AI & ML student at PES Modern College of Engineering, Pune (CGPA: 9.31). 
 
@@ -195,6 +199,7 @@ The compiled, minified bundle will be output to the `dist/` directory.
 This project supports both **Static Single-Page Application (SPA)** hosting and **Full-Stack Node.js** hosting.
 
 ### Option A: Vercel / Netlify / Cloudflare Pages *(Recommended)*
+- **Live Deployment**: **[https://purvabh-portfolio.vercel.app/](https://purvabh-portfolio.vercel.app/)**
 - **Framework Preset**: `Vite`
 - **Build Command**: `npm run build`
 - **Output Directory**: `dist`
@@ -208,6 +213,7 @@ This project supports both **Static Single-Page Application (SPA)** hosting and 
 
 ## • Contact & Connect
 
+- **Live Website**: [https://purvabh-portfolio.vercel.app/](https://purvabh-portfolio.vercel.app/)
 - **Name**: Purva Manishrao Bhadange
 - **Location**: Pune, Maharashtra, India
 - **Email**: [purvabhadange06@gmail.com](mailto:purvabhadange06@gmail.com)
