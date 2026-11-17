@@ -137,8 +137,6 @@
               uniform vec2 gaze;
               uniform float puffAmt;
               uniform float blushAmt;
-              uniform vec3 hairTint;
-              uniform float hairAmt;
               void main(){
                 if(vUv.x<0.||vUv.y<0.||vUv.x>1.||vUv.y>1.){ gl_FragColor = vec4(0.); return; }
 
@@ -171,21 +169,7 @@
 
                 vec3 col = c.rgb / max(c.a, 0.001);
 
-                // 3. Dynamic Hair Color Tinting & Highlighting
-                if(hairAmt > 0.001){
-                  vec2 faceRel = (vUv - vec2(0.50, 0.435)) / vec2(0.165, 0.215);
-                  float insideFace = exp(-dot(faceRel, faceRel) * 2.2);
-                  float hairYFade = 1.0 - smoothstep(0.58, 0.76, vUv.y);
-                  float hairRegion = (1.0 - insideFace) * hairYFade;
-                  float pixLum = dot(col, vec3(0.299, 0.587, 0.114));
-                  float hairLumMask = 1.0 - smoothstep(0.36, 0.64, pixLum);
-                  float hairMask = clamp(hairRegion * hairLumMask * 1.6, 0.0, 1.0);
-                  // Natural multi-tonal hair highlights preserving original gloss and shadows
-                  vec3 tinted = hairTint * (pixLum * 1.85 + 0.14);
-                  col = mix(col, tinted, hairMask * hairAmt);
-                }
-
-                // 4. Soft rosy cheek blush during flirt / puff
+                // 3. Soft rosy cheek blush during flirt / puff
                 if(blushAmt > 0.001){
                   vec2 bL = (uv - vec2(0.392, 0.456)) / vec2(0.056, 0.036);
                   vec2 bR = (uv - vec2(0.608, 0.456)) / vec2(0.056, 0.036);
@@ -193,7 +177,7 @@
                   col = mix(col, col * vec3(1.10, 0.83, 0.85) + vec3(0.11, 0.02, 0.04), bMask * blushAmt * 0.46);
                 }
 
-                // 5. Subtle directional sheen matched to head turn without distorting natural skin tone
+                // 4. Subtle directional sheen matched to head turn without distorting natural skin tone
                 float turnShade = 1.0 + dot(vUv - vec2(0.5, 0.41), lean) * 1.4 * vDepth;
                 float shade = clamp(vS * turnShade, 0.90, 1.10);
                 gl_FragColor = vec4(clamp(col * shade, 0.0, 1.0) * c.a, c.a);
@@ -203,7 +187,7 @@
             gl.attachShader(pr, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, FS));
             gl.linkProgram(pr); gl.useProgram(pr);
             const U = {over_: gl.getUniformLocation(pr, 'overS')};
-            for (const n of ['lean', 'gaze', 'breath', 'puffAmt', 'blushAmt', 'hairTint', 'hairAmt', 'faceA', 'faceB', 'fade']) U[n] = gl.getUniformLocation(pr, n);
+            for (const n of ['lean', 'gaze', 'breath', 'puffAmt', 'blushAmt', 'faceA', 'faceB', 'fade']) U[n] = gl.getUniformLocation(pr, n);
             gl.uniform1f(U.over_, OVER);
             gl.uniform1i(U.faceA, 0); gl.uniform1i(U.faceB, 1);
 
@@ -508,29 +492,6 @@
 
             // ---- calibrated facial coordinates & expressions for Purva ----
             const SPOT = {nose: [.50, .445], brow: [.50, .305], cheekR: [.60, .455], cheekL: [.40, .455], mouth: [.50, .525]};
-            const HAIR_PALETTE = [
-              { name: 'natural', tint: [0.0, 0.0, 0.0], amt: 0.0 },
-              { name: 'pink',    tint: [0.96, 0.36, 0.62], amt: 0.82 },
-              { name: 'blue',    tint: [0.26, 0.58, 0.94], amt: 0.82 },
-              { name: 'blonde',  tint: [0.94, 0.78, 0.44], amt: 0.75 },
-              { name: 'violet',  tint: [0.72, 0.38, 0.90], amt: 0.80 },
-            ];
-            let hairIndex = 0;
-            let currentHairTint = [0, 0, 0];
-            let currentHairAmt = 0;
-            let targetHairTint = [0, 0, 0];
-            let targetHairAmt = 0;
-
-            function cycleHair(specificIndex) {
-              if (typeof specificIndex === 'number') {
-                hairIndex = specificIndex % HAIR_PALETTE.length;
-              } else {
-                hairIndex = (hairIndex + 1) % HAIR_PALETTE.length;
-              }
-              const chosen = HAIR_PALETTE[hairIndex];
-              targetHairTint = chosen.tint;
-              targetHairAmt = chosen.amt;
-            }
 
             let gazeX = 0, gazeY = 0;
             let actGaze = null;
@@ -544,7 +505,6 @@
             const ACTS = {
               roll: [['smile', 60, 1300, {roll: true}], ['wink', 85, 540], ['smile', 110, 700]],
               shifty: [['smile', 70, 520, {gaze: [-0.95, 0]}], ['smile', 70, 600, {gaze: [0.95, 0]}], ['smile', 70, 420, {gaze: [-0.95, 0]}], ['smile', 70, 260, {gaze: [0, 0]}]],
-              hair: [['smile', 70, 1000, {hairI: 1}], ['smile', 70, 1000, {hairI: 2}], ['smile', 70, 1000, {hairI: 3}], ['smile', 70, 1000, {hairI: 4}], ['smile', 70, 800, {hairI: 0}]],
               sneeze: [['closed', 85, 240], ['shock', 55, 340, {jolt: [.50, .445, 0, 1.35, .28], lean: [0, .026]}], ['smile', 120, 720]],
               flirt: [['wink', 95, 560, {blush: 0.75}], ['wink', 95, 1300, {blush: 1, hearts: true, lean: [0.004, 0.014]}], ['smile', 120, 820]],
               puff: [['wink', 85, 1450, {puff: 1, blush: 0.85, jolt: [.50, .46, 0, -0.15, .14], lean: [0, -0.008]}], ['smile', 130, 680]],
@@ -557,10 +517,10 @@
               fly: 'fly',
               tug: 'tug',
             };
-            const ROTATION = ['roll', 'shifty', 'hair', 'fly', 'flirt', 'tug', 'wind', 'sneeze', 'puff', 'yawn', 'wow', 'cheeky', 'doze'];
+            const ROTATION = ['roll', 'shifty', 'fly', 'flirt', 'tug', 'wind', 'sneeze', 'puff', 'yawn', 'wow', 'cheeky', 'doze'];
             const ZONES = {
               hover: {eyeL: 'wink', eyeR: 'wink', nose: 'smile', mouth: 'smile'},
-              tap: {brow: 'shock', eyeL: 'wink', eyeR: 'wink', nose: 'act:sneeze', mouth: 'smile', cheek: 'act:puff', chin: 'smile', hair: 'hair'}
+              tap: {brow: 'shock', eyeL: 'wink', eyeR: 'wink', nose: 'act:sneeze', mouth: 'smile', cheek: 'act:puff', chin: 'smile', hair: 'wink'}
             };
             // Calibrated to Purva's true head & facial feature proportions inside the 1:1 frame
             const zoneAt = (u, v) => {
@@ -639,7 +599,6 @@
                 if (x.jolt) poke(...x.jolt);
                 wantLean = x.lean || [0, 0];
                 if (x.roll) startEyeRoll(now);
-                if (typeof x.hairI === 'number') cycleHair(x.hairI);
                 if (x.gaze) actGaze = x.gaze;
                 if (x.puff) puffTarget = x.puff;
                 if (x.blush) blushTarget = x.blush;
@@ -772,11 +731,6 @@
               pressed = false; brush = null; wrap.style.cursor = onHead ? 'grab' : '';
               pulls = pulls.filter(t => now - t < 14000);
               if (L < .03 && held < 380) {
-                if (z === 'hair') {
-                  cycleHair();
-                  poke(downU, downV, 0, .28, .07);
-                  return;
-                }
                 const r = ZONES.tap[z] || 'smile';
                 if (r.startsWith('act:')) {
                   startAct(r.slice(4), now);
@@ -875,12 +829,6 @@
               blushNow += (activeBlushTarget - blushNow) * f(8);
               windStrength += (windTarget - windStrength) * f(7);
 
-              // Smooth interpolation of hair color tint
-              for (let c = 0; c < 3; c++) {
-                currentHairTint[c] += (targetHairTint[c] - currentHairTint[c]) * f(10);
-              }
-              currentHairAmt += (targetHairAmt - currentHairAmt) * f(10);
-
               // Smooth calculation of eye gaze (cursor tracking and eye rolling)
               let targetGazeX = 0, targetGazeY = 0;
               if (rollAngle !== null) {
@@ -970,8 +918,6 @@
               gl.uniform1f(U.breath, reduced ? 0 : Math.sin(now * 0.0018) * 0.0045);
               gl.uniform1f(U.puffAmt, puffNow);
               gl.uniform1f(U.blushAmt, blushNow);
-              gl.uniform3f(U.hairTint, currentHairTint[0], currentHairTint[1], currentHairTint[2]);
-              gl.uniform1f(U.hairAmt, currentHairAmt);
               gl.drawElements(gl.TRIANGLES, idx.length, gl.UNSIGNED_SHORT, 0);
             }
 
