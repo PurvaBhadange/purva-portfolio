@@ -23,20 +23,20 @@
 
 ---
 
-## 📌 Overview
+## • Overview
 
 This repository powers the official personal portfolio and interactive engineering showcase for **Purva Manishrao Bhadange** — a 3rd-year B.Tech AI & ML student at PES Modern College of Engineering, Pune (CGPA: 9.31). 
 
 Built with **React 19**, **TypeScript**, **Tailwind CSS v4**, **Motion**, and a custom **WebGL 3D dynamic physics engine**, this portfolio blends interactive creative computing with production-grade AI/ML and full-stack systems engineering.
 
-### 🌟 Key Highlights
+### • Key Highlights
 - **The Living Portrait**: A custom GPU-accelerated WebGL head simulation featuring 59 pixel-aligned facial captures, real-time directional pupil & gaze tracking, anatomical bone stiffness, elastic dough stretch physics, and idle gesture loops.
 - **Production AI/ML Showcases**: Deep technical breakdowns, interactive architecture diagrams, live demos, and source links for multilingual RAG assistants, multi-agent research pipelines, and government procurement platforms.
 - **Engineered for High Performance**: 60+ FPS animations, sub-70ms seamless crossfades, strict zero-folding untangle algorithms, and 100% responsive fluid typography.
 
 ---
 
-## 🎭 The Living Portrait (Interactive 3D WebGL)
+## • The Living Portrait (Interactive 3D WebGL)
 
 The hero section features a real-time, interactive living portrait that behaves like an authentic responsive digital presence rather than a static image.
 
@@ -71,7 +71,7 @@ The hero section features a real-time, interactive living portrait that behaves 
 
 ---
 
-## 🚀 Featured Engineering Projects
+## • Featured Engineering Projects
 
 | # | Project | Category | Core Stack | Live Demo |
 |---|---|---|---|:---:|
@@ -110,7 +110,7 @@ The hero section features a real-time, interactive living portrait that behaves 
 
 ---
 
-## 🛠️ Tech Stack & Tooling
+## • Tech Stack & Tooling
 
 ```
 Frontend Architecture       Backend & APIs              AI / ML & Data
@@ -123,7 +123,7 @@ Frontend Architecture       Backend & APIs              AI / ML & Data
 
 ---
 
-## 📂 Project Structure
+## • Project Structure
 
 ```text
 purva-portfolio/
@@ -150,7 +150,7 @@ purva-portfolio/
 
 ---
 
-## ⚡ Getting Started Locally
+## • Getting Started Locally
 
 ### Prerequisites
 - [Node.js](https://nodejs.org/) (`v18.0.0` or higher)
@@ -206,7 +206,7 @@ This project supports both **Static Single-Page Application (SPA)** hosting and 
 
 ---
 
-## 📬 Contact & Connect
+## • Contact & Connect
 
 - **Name**: Purva Manishrao Bhadange
 - **Location**: Pune, Maharashtra, India
