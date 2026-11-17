@@ -61,7 +61,7 @@ The hero section features a real-time, interactive living portrait that behaves 
    └───────────────────────┘                       └─────────────────────┘
 ```
 
-### Technical Specs & Features
+### • Technical Specs & Features
 - **Real-Time Cursor Eye Tracking**: In-shader procedural UV displacement follows the user's cursor across 16 gaze directions inside the active interaction radius with cosine-weighted falloff.
 - **Physics Simulation (1/240s)**: A damped wave equation runs on a 32×32 vertex grid with fixed sub-stepping to guarantee stability and prevent triangular folding or spikes regardless of monitor refresh rate.
 - **Natural Likeness Preservation**: Anatomical bone stiffness weights keep the nose bridge and eye sockets structurally intact while allowing cheeks and hair to stretch and rebound elastically.
@@ -190,7 +190,7 @@ The compiled, minified bundle will be output to the `dist/` directory.
 
 ---
 
-## 🚢 Deployment Guide
+## • Deployment Guide
 
 This project supports both **Static Single-Page Application (SPA)** hosting and **Full-Stack Node.js** hosting.
 
